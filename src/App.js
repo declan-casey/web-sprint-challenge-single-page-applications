@@ -5,9 +5,11 @@ import * as yup from "yup"
 import schema from "./Schema/formSchema"
 import axios from "axios"
 import {Switch, Link, Route} from 'react-router-dom'
+import Order from "./components/Order"
 
 
 const initialFormValues = {
+  name: '',
   size: '',
   sauce: '',
   pepperoni: false,
@@ -42,69 +44,66 @@ const App = () => {
   const [disabled, setDisabled] = useState(initialDisabled)
 
 
-  const inputChange = (pizza, value) => {
-    yup.reach(schema, pizza).validate(value)
+  const inputChange = (piz, value) => {
+    yup.reach(schema, piz).validate(value)
     .then(() => {
       setFormErrors({
         ...formErrors,
-        [pizza]: "",
+        [piz]: "",
       })
     })
     .catch((err) => {
       setFormErrors({
         ...formValues,
-        [pizza]: err.errors[0]
+        [piz]: err.errors[0]
       })
     })
     setFormValues({
       ...formValues,
-      [pizza]: value
+      [piz]: value
     })
   }
 
-  
+  const postNewPizza = newPizza=> {
+    axios
+      .post("https://reqres.in/api/users", newPizza)
+      .then((res) => {
+        setPizza([newPizza, ...pizza]);
+        setFormValues(initialFormValues);
+      })
+      .catch((err) => {
+      console.log(err)
+    });
+  }
 
 
   const formSubmit = () => {
     const newPizza = {
+      name: formValues.name.trim(),
       size: formValues.size.trim(),
       sauce:formValues.sauce.trim(),
       other:formValues.other.trim(),
       toppings:["pepperoni", "sausage", "canadianBacon", "italianSausage", "grilledChicken", "onnions", "greenPepper", "dicedTomatos", "blackOlives", "roastedGarlic", "artichokeHearts", "threeCheese", "pineapple", "extraCheese"].filter((toppings) => formValues[toppings]),
     }
-    const postNewPizza = setPizza(pizza.concat(newPizza));
-      setFormValues(initialFormValues);
-        axios
-          .post("fakeapi.com", newPizza)
-          .then((res) => {
-            setPizza([newPizza, ...pizza]);
-            setFormValues(initialFormValues);
-          })
-          .catch((err) => {
-          
-        });
+
     postNewPizza(newPizza);
   }
 
+  // setPizza(pizza.concat(newPizza));
+  // setFormValues(initialFormValues);
+
+    
   useEffect(() => {
-    const getForm = () => {
-      axios
-      .get('http://localhost:3000/pizza')
-      .then(response => {
-        setPizza(response.data)
-      }) 
-      .catch(err => {
-        console.log(err)
-      })
-  }
-  getForm();
-},[]);
+    schema.isValid(formValues).then((valid) => {
+      setDisabled(!valid)
+    })
+  }, [formValues])
 
   return (
 
     <div>
       <Switch>
-        <h1>Lambda Eats</h1>
+        
         <Route path = "/pizza">
           <Form 
           change = {inputChange}
@@ -112,11 +111,17 @@ const App = () => {
           submit = {formSubmit}
           disabled = {disabled}
           errors = {formErrors}
+          
           />
-      </Route>
+          {pizza.map(orders => {
+            return <Order key = {orders.id} details = {orders}/>
+          })}
+    
+        </Route>
+        
 
         <Route path = "/">
-          <Home/>
+          <Home />
         </Route>
     </Switch>
     </div>
